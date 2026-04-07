@@ -40,7 +40,7 @@ El pipeline comparó seis configuraciones de entrenamiento. MobileNetV2 con Data
 
 ## Dataset
 
-**Fuente:** [Oral Cancer Images for Classification]([https://www.kaggle.com/datasets/ashenafifasilkebede/dataset](https://www.kaggle.com/datasets/muhammadatef/oral-cancer-images-for-classification]) en Kaggle.
+**Fuente:** [Oral Cancer Images for Classification]([https://www.kaggle.com/datasets/muhammadatef/oral-cancer-images-for-classification]) en Kaggle.
 
 Las imágenes no están incluidas en el repositorio por razones de tamaño. Para reproducir los experimentos descarga el dataset desde Kaggle y colócalo en `dataset_original/`.
 
