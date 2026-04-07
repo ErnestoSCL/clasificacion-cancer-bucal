@@ -1,0 +1,42 @@
+# Dataset y datos crudos (demasiado pesados)
+dataset/
+dataset_procesado/
+
+# Pesos de modelos entrenados (demasiado pesados)
+modelos/
+
+# Entorno virtual
+venv_tf312/
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs y temporales
+*.log
+*.tmp
+*_tmp.csv
