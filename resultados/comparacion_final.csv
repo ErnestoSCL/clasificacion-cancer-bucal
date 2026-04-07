@@ -1,0 +1,7 @@
+name,accuracy,auc,f1,precision,recall
+MobileNetV2 — mobilenet_con_aug,0.9731,0.9965,0.9755,0.9819,0.9692
+EfficientNetB0 — efficientnet_con_aug,0.9614,0.9924,0.9652,0.9629,0.9676
+MobileNetV2 — mobilenet_sin_aug,0.9462,0.977,0.9524,0.9346,0.9709
+EfficientNetB0 — efficientnet_sin_aug,0.871,0.9408,0.8857,0.8692,0.9029
+CNN — Con Aug,0.8386,0.9312,0.8661,0.8006,0.9433
+CNN — Sin Aug,0.7366,0.8346,0.795,0.6985,0.9223
