@@ -1,9 +1,11 @@
-# Dataset y datos crudos (demasiado pesados)
-dataset/
-dataset_procesado/
+# Imágenes del dataset (demasiado pesadas para git)
+dataset_procesado/sin_augmentacion/cancer/
+dataset_procesado/sin_augmentacion/normal/
+dataset_procesado/con_augmentacion/cancer/
+dataset_procesado/con_augmentacion/normal/
 
-# Pesos de modelos entrenados (demasiado pesados)
-modelos/
+# Dataset original (imágenes crudas)
+dataset/
 
 # Entorno virtual
 venv_tf312/
