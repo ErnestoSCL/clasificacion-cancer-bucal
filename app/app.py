@@ -8,6 +8,8 @@ import numpy as np
 import plotly.graph_objects as go
 from pathlib import Path
 import io, base64, time
+import os
+import requests
 
 # ════════════════════════════════════════════════════════════
 #  PAGE CONFIG
@@ -27,6 +29,7 @@ DEVICE     = torch.device("cpu")   # CPU en cloud
 IMG_SIZE   = 224
 MEAN       = [0.485, 0.456, 0.406]
 STD        = [0.229, 0.224, 0.225]
+API_URL    = None
 
 # Métricas del mejor modelo (MobileNetV2 con DA)
 MODEL_METRICS = {
@@ -36,6 +39,26 @@ MODEL_METRICS = {
     "Precision":0.9712,
     "Recall":   0.9754,
 }
+
+
+def load_env_file() -> None:
+    env_path = Path(__file__).resolve().parent.parent / ".env"
+    if not env_path.exists():
+        return
+
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key:
+            os.environ.setdefault(key, value)
+
+
+load_env_file()
+API_URL = os.getenv("API_URL")
 
 # ════════════════════════════════════════════════════════════
 #  CSS — diseño "Clinical Luminary" de Stitch
@@ -231,6 +254,38 @@ def predict(model, tensor: torch.Tensor):
     return prob
 
 
+def image_to_jpeg_bytes(image: Image.Image) -> bytes:
+    buffer = io.BytesIO()
+    image.convert("RGB").save(buffer, format="JPEG")
+    return buffer.getvalue()
+
+
+def predict_with_api(image: Image.Image) -> float:
+    if not API_URL:
+        raise RuntimeError("API_URL no está configurada")
+
+    files = {
+        "file": ("oral_image.jpg", image_to_jpeg_bytes(image), "image/jpeg"),
+    }
+    endpoint = f"{API_URL.rstrip('/')}/predict"
+    response = requests.post(endpoint, files=files, timeout=45)
+    if response.status_code != 200:
+        raise RuntimeError(f"La API respondió {response.status_code}: {response.text}")
+
+    payload = response.json()
+    if "probability_cancer" not in payload:
+        raise RuntimeError("Respuesta de API sin campo 'probability_cancer'")
+    return float(payload["probability_cancer"])
+
+
+def get_prediction_probability(model, tensor: torch.Tensor, image: Image.Image) -> float:
+    if API_URL:
+        return predict_with_api(image)
+    if model is None:
+        raise RuntimeError("Modelo local no inicializado")
+    return float(predict(model, tensor))
+
+
 # ════════════════════════════════════════════════════════════
 #  COMPONENTS
 # ════════════════════════════════════════════════════════════
@@ -322,14 +377,18 @@ if page == "Diagnóstico":
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Carga del modelo ──────────────────────────────────────
-    with st.spinner("Cargando modelo..."):
-        try:
-            model = load_model()
-            st.success("✅ Modelo cargado — MobileNetV2 (fine-tuning con datos aumentados)")
-        except Exception as e:
-            st.error(f"❌ Error al cargar el modelo: {e}")
-            st.stop()
+    model = None
+    if API_URL:
+        st.caption(f"Modo API activo: `{API_URL}`")
+    else:
+        # ── Carga del modelo local ───────────────────────────
+        with st.spinner("Cargando modelo..."):
+            try:
+                model = load_model()
+                st.success("✅ Modelo cargado — MobileNetV2 (fine-tuning con datos aumentados)")
+            except Exception as e:
+                st.error(f"❌ Error al cargar el modelo: {e}")
+                st.stop()
 
     # ── Uploader ──────────────────────────────────────────────
     uploaded = st.file_uploader(
@@ -429,7 +488,7 @@ if page == "Diagnóstico":
             """, unsafe_allow_html=True)
 
             tensor    = preprocess(img)
-            cancer_p  = predict(model, tensor)
+            cancer_p  = get_prediction_probability(model, tensor, img)
             normal_p  = 1.0 - cancer_p
             is_cancer = cancer_p >= 0.5
             time.sleep(0.4)  # pequeña pausa para UX

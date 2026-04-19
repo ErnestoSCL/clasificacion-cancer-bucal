@@ -1,131 +1,294 @@
-# Clasificación de Cáncer Bucal con Deep Learning
+# 🔬 Clasificación de Cáncer Bucal con Deep Learning
 
-Sistema de clasificación binaria de imágenes intraorales basado en **MobileNetV2** con Transfer Learning y Data Augmentation. Detecta la presencia de cáncer bucal a partir de fotografías clínicas con una precisión de **97.2%** en el conjunto de prueba.
+![Python](https://img.shields.io/badge/Python-3.10+-blue)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-EE4C2C)
+![Flask](https://img.shields.io/badge/Flask-3.0+-000000)
+![Streamlit](https://img.shields.io/badge/Streamlit-UI-FF4B4B)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-Minikube-326CE5)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-4169E1)
 
-**Demo en vivo:** [clasificacion-cancer-bucal.streamlit.app](https://clasificacion-cancer-bucal.streamlit.app/)
+> [!WARNING]
+> **Aviso médico importante:** este repositorio es una **prueba de concepto académica** para apoyo al tamizaje. **No** es una herramienta de diagnóstico clínico ni sustituye la evaluación de un profesional sanitario.
 
----
+## 🌍 Demo en vivo
 
-## Contexto
+Prueba la aplicación publicada en Streamlit Cloud:
 
-El cáncer bucal representa cerca del 3% de los cánceres diagnosticados a nivel mundial. La detección temprana incrementa la tasa de supervivencia a cinco años del 50% al 83%, pero el acceso limitado a especialistas en muchas regiones retrasa el diagnóstico. Este proyecto explora el uso de redes neuronales convolucionales como herramienta de apoyo al tamizaje clínico.
-
----
-
-## Resultados del modelo seleccionado
-
-El pipeline comparó seis configuraciones de entrenamiento. MobileNetV2 con Data Augmentation obtuvo el mejor rendimiento en todas las métricas:
-
-| Modelo         | Dataset   | Accuracy | AUC-ROC | F1-Score |
-|----------------|-----------|----------|---------|---------|
-| CNN Scratch    | Sin Aug   | 88.3%    | 0.9601  | 0.8812  |
-| CNN Scratch    | Con Aug   | 90.1%    | 0.9698  | 0.9023  |
-| EfficientNetB0 | Sin Aug   | 93.4%    | 0.9845  | 0.9321  |
-| EfficientNetB0 | Con Aug   | 95.8%    | 0.9914  | 0.9578  |
-| MobileNetV2    | Sin Aug   | 94.1%    | 0.9901  | 0.9411  |
-| **MobileNetV2**| **Con Aug**| **97.2%**| **0.9946**| **0.9733**|
+- [clasificacion-cancer-bucal.streamlit.app](https://clasificacion-cancer-bucal.streamlit.app/)
 
 ---
 
-## Arquitectura
+## 📌 Resumen
 
-- **Backbone:** MobileNetV2 preentrenado en ImageNet (feature extractor congelado en fase 1)
-- **Clasificador:** `Dropout(0.3) → Linear(1280, 256) → ReLU → Dropout(0.2) → Linear(256, 1)`
-- **Función de pérdida:** `BCEWithLogitsLoss` con `pos_weight` para compensar desbalance de clases
-- **Optimizador:** Adam con `ReduceLROnPlateau`
-- **Entrenamiento:** Fine-tuning en dos fases — primero el clasificador, luego las últimas capas del backbone
-- **Hardware:** NVIDIA RTX 5070 Ti con CUDA 12.8 y Mixed Precision (AMP)
+Sistema de clasificación binaria de imágenes intraorales con redes convolucionales para estimar probabilidad de:
 
----
+- **Cáncer bucal (positivo)**
+- **Tejido normal (negativo)**
 
-## Dataset
+El proyecto compara seis configuraciones (CNN scratch, EfficientNetB0 y MobileNetV2, con y sin augmentación), seleccionando **MobileNetV2 con Data Augmentation** como modelo final.
 
-**Fuente:** [Oral Cancer Images for Classification](https://www.kaggle.com/datasets/muhammadatef/oral-cancer-images-for-classification) en Kaggle.
+Arquitectura desacoplada:
 
-Las imágenes no están incluidas en el repositorio por razones de tamaño. Para reproducir los experimentos descarga el dataset desde Kaggle y colócalo en `dataset_original/`.
-
-| Clase  | Etiqueta |
-|--------|----------|
-| Cancer | 1        |
-| Normal | 0        |
-
-**División:** 70% entrenamiento / 15% validación / 15% prueba
-
-**Data Augmentation (10 técnicas):** rotación, flip horizontal/vertical, zoom, variación de brillo, contraste, saturación, ruido gaussiano, CLAHE, recorte aleatorio y escalado.
+1. **Frontend Streamlit** para UX clínica y visualización.
+2. **API Flask** para inferencia por HTTP y registro de predicciones.
+3. **PostgreSQL** para trazabilidad técnica de inferencias.
 
 ---
 
-## Estructura del proyecto
+## 🧠 Modelo seleccionado
 
+- **Arquitectura base:** MobileNetV2 (transfer learning).
+- **Head de clasificación:** `Dropout(0.3) → Linear(1280,256) → ReLU → Dropout(0.2) → Linear(256,1)`.
+- **Función de pérdida:** `BCEWithLogitsLoss` con `pos_weight`.
+- **Optimización:** Adam + `ReduceLROnPlateau`.
+- **Entrenamiento:** dos fases (clasificador y fine-tuning parcial del backbone).
+- **Inferencia:** CPU en producción (Streamlit Cloud).
+
+---
+
+## 📊 Métricas del modelo obtenido
+
+Métricas extraídas de `resultados/comparacion_final.csv` sobre el conjunto de prueba.
+
+### Modelo final en la app (MobileNetV2 — con augmentación)
+
+| Métrica | Valor |
+|---------|-------|
+| Accuracy | **0.9731** |
+| AUC-ROC | **0.9965** |
+| F1-score | **0.9755** |
+| Precision | **0.9819** |
+| Recall | **0.9692** |
+
+Este modelo ofrece el mejor balance global entre discriminación y estabilidad para despliegue en la demo.
+
+### Comparativa de experimentos
+
+| Modelo | Accuracy | AUC | F1 |
+|--------|----------|-----|----|
+| MobileNetV2 — con aug | **0.9731** | **0.9965** | **0.9755** |
+| EfficientNetB0 — con aug | 0.9614 | 0.9924 | 0.9652 |
+| MobileNetV2 — sin aug | 0.9462 | 0.9770 | 0.9524 |
+| EfficientNetB0 — sin aug | 0.8710 | 0.9408 | 0.8857 |
+| CNN — con aug | 0.8386 | 0.9312 | 0.8661 |
+| CNN — sin aug | 0.7366 | 0.8346 | 0.7950 |
+
+---
+
+## 🖼️ Capturas de la aplicación
+
+### Vista de diagnóstico
+
+![Vista de diagnóstico](assets/diagnostico.png)
+
+### Vista de rendimiento del modelo
+
+![Vista de rendimiento](assets/rendimiento.png)
+
+---
+
+## 🖼️ Visualización de explicabilidad
+
+Mapa Score-CAM de ejemplo para el modelo final:
+
+![Score-CAM MobileNet con augmentación](resultados/gradcam/mobilenet_con_aug_scorecam.png)
+
+---
+
+## ⚙️ Arquitectura de sistema
+
+### Flujo end-to-end
+
+1. Usuario sube imagen intraoral en Streamlit.
+2. Si `API_URL` está definida, Streamlit envía el archivo a Flask (`POST /predict`).
+3. Flask ejecuta inferencia con PyTorch.
+4. Flask registra el resultado en PostgreSQL (si disponible).
+5. Streamlit muestra probabilidad, clasificación y métricas.
+
+```mermaid
+graph TD
+    UI[Streamlit app/app.py] -->|POST /predict| API[Flask api/main.py]
+    API -->|SQLAlchemy| DB[(PostgreSQL)]
+    UI -->|Local fallback| MODEL[PyTorch MobileNetV2]
 ```
-.
-├── notebooks/
-│   ├── desarrollo_modelo.ipynb       # EDA y análisis exploratorio
-│   ├── preprocesamiento.ipynb        # Pipeline de preprocesamiento y augmentation
-│   └── ENTRENAMIENTO.ipynb           # Entrenamiento comparativo y Score-CAM
-├── app/
-│   ├── app.py                        # Aplicación Streamlit
-│   └── requirements.txt             # Dependencias para despliegue
-├── modelos/
-│   └── mobilenet_con_aug/
-│       └── best.pt                   # Pesos del modelo con mejor rendimiento
-├── dataset_procesado/
-│   ├── sin_augmentacion/manifiesto.csv
-│   └── con_augmentacion/manifiesto.csv
-└── resultados/
-    └── gradcam/                      # Visualizaciones Score-CAM generadas
+
+---
+
+## 🗂️ Estructura del proyecto
+
+```text
+app_clasificacion_cancer_bucal/
+├── api/                                         # Backend Flask de inferencia y registro
+│   ├── __init__.py                              # Paquete Python del módulo API
+│   ├── database.py                              # Configuración SQLAlchemy y sesión DB
+│   ├── Dockerfile                               # Imagen Docker de Flask API
+│   ├── main.py                                  # Endpoints /health, /model-info, /predict
+│   ├── model.py                                 # Carga de MobileNetV2 y predicción
+│   ├── models_db.py                             # Modelo ORM de tabla predictions
+│   └── utils.py                                 # Utilidades de lectura/validación de imagen
+├── app/                                         # Aplicación Streamlit
+│   └── app.py                                   # UI principal y lógica local/API
+├── assets/                                      # Capturas usadas en el README
+│   ├── diagnostico.png                          # Pantalla de diagnóstico de la demo
+│   └── rendimiento.png                          # Pantalla de métricas/rendimiento
+├── k8s/                                         # Manifiestos Kubernetes (Minikube)
+│   ├── api-deployment.yaml                      # Deployment de Flask API
+│   ├── api-service.yaml                         # Service de Flask API
+│   ├── postgres-deployment.yaml                 # Deployment de PostgreSQL
+│   ├── postgres-pvc.yaml                        # Volumen persistente PostgreSQL
+│   └── postgres-service.yaml                    # Service interno de PostgreSQL
+├── dataset_procesado/                           # Metadatos de datasets procesados
+│   ├── con_augmentacion/
+│   │   └── manifiesto.csv                       # Índice del split con data augmentation
+│   └── sin_augmentacion/
+│       └── manifiesto.csv                       # Índice del split sin data augmentation
+├── modelos/                                     # Pesos entrenados por experimento
+│   ├── cnn_con_aug/
+│   │   └── best.pt                              # Mejor checkpoint CNN con augmentation
+│   ├── cnn_sin_aug/
+│   │   └── best.pt                              # Mejor checkpoint CNN sin augmentation
+│   ├── efficientnet_con_aug/
+│   │   └── best.pt                              # Mejor checkpoint EfficientNetB0 con augmentation
+│   ├── efficientnet_sin_aug/
+│   │   └── best.pt                              # Mejor checkpoint EfficientNetB0 sin augmentation
+│   ├── mobilenet_con_aug/
+│   │   └── best.pt                              # Mejor checkpoint MobileNetV2 con augmentation (modelo final)
+│   └── mobilenet_sin_aug/
+│       └── best.pt                              # Mejor checkpoint MobileNetV2 sin augmentation
+├── notebooks/                                   # Investigación y entrenamiento
+│   ├── EDA.ipynb                                # Análisis exploratorio de datos
+│   ├── ENTRENAMIENTO.ipynb                      # Entrenamiento y evaluación de modelos
+│   └── PREPROCESAMIENTO.ipynb                   # Preprocesamiento y generación de datasets
+├── resultados/                                  # Resultados experimentales
+│   ├── comparacion_final.csv                    # Tabla final de métricas por experimento
+│   ├── gradcam/
+│   │   └── mobilenet_con_aug_scorecam.png       # Mapa Score-CAM del modelo final
+│   └── history/
+│       ├── cnn_con_aug.json                     # Curvas entrenamiento CNN con augmentation
+│       ├── cnn_sin_aug.json                     # Curvas entrenamiento CNN sin augmentation
+│       ├── efficientnet_con_aug.json            # Curvas entrenamiento EfficientNet con augmentation
+│       ├── efficientnet_sin_aug.json            # Curvas entrenamiento EfficientNet sin augmentation
+│       ├── mobilenet_con_aug.json               # Curvas entrenamiento MobileNet con augmentation
+│       └── mobilenet_sin_aug.json               # Curvas entrenamiento MobileNet sin augmentation
+├── .env.example                                 # Plantilla de variables de entorno
+├── .gitignore                                   # Reglas de versionado
+├── docker-compose.yml                           # Orquestación local API + PostgreSQL
+├── README.md                                    # Documentación principal
+├── requirements-api.txt                         # Dependencias para Flask API
+└── requirements.txt                             # Dependencias para Streamlit Cloud y local
 ```
 
 ---
 
-## Ejecución local
+## 🚀 Formas de ejecución
 
-**Requisitos:** Python 3.10+
+### 1) Demo local (solo Streamlit, sin API)
 
 ```bash
-# Clonar el repositorio
-git clone https://github.com/ErnestoSCL/clasificacion-cancer-bucal.git
-cd clasificacion-cancer-bucal
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
 
-# Crear entorno virtual e instalar dependencias
-python -m venv venv
-venv\Scripts\activate          # Windows
-pip install -r app/requirements.txt
-
-# Ejecutar la aplicación
+pip install -r requirements.txt
 streamlit run app/app.py
 ```
 
-La app estará disponible en `http://localhost:8501`.
+### 2) Streamlit + API local (Flask)
+
+```bash
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+
+pip install -r requirements-api.txt
+pip install -r requirements.txt
+
+python api/main.py
+```
+
+En otra terminal (PowerShell):
+
+```powershell
+$env:API_URL="http://localhost:8000"
+streamlit run app/app.py
+```
+
+### 3) Docker Compose (Flask API + PostgreSQL)
+
+```bash
+docker compose up --build -d
+docker compose ps
+```
+
+Luego ejecutar Streamlit:
+
+```powershell
+$env:API_URL="http://localhost:8000"
+streamlit run app/app.py
+```
+
+### 4) Kubernetes con Minikube (Flask API + PostgreSQL)
+
+```powershell
+minikube start --memory=4096 --cpus=2
+minikube docker-env | Invoke-Expression
+
+kubectl apply -f k8s/postgres-pvc.yaml
+kubectl apply -f k8s/postgres-deployment.yaml
+kubectl apply -f k8s/postgres-service.yaml
+
+docker build -t medical-api:v1 -f api/Dockerfile .
+kubectl apply -f k8s/api-deployment.yaml
+kubectl apply -f k8s/api-service.yaml
+
+minikube service medical-api-service --url
+```
 
 ---
 
-## Explicabilidad — Score-CAM
+## 🧪 Endpoints API
 
-Para entender qué regiones de la imagen activan la predicción se implementó **Score-CAM** sobre la capa `features[13]` del backbone. A diferencia de Grad-CAM, Score-CAM no depende de gradientes, lo que produce mapas de calor más estables en modelos preentrenados con fine-tuning parcial.
+- `GET /health` → estado de servicio.
+- `GET /model-info` → metadatos del modelo.
+- `POST /predict` → inferencia desde archivo de imagen (`file`).
 
-Los mapas generados muestran que el modelo presta atención a las lesiones visibles (manchas blancas, eritroplasia, úlceras) y no a estructuras anatómicas irrelevantes como dientes o labios.
+Ejemplo:
 
----
-
-## Despliegue
-
-La aplicación está publicada en **Streamlit Community Cloud** y se puede desplegar también en Hugging Face Spaces. El modelo corre en CPU, por lo que no requiere GPU en producción.
-
-Para desplegar en Streamlit Cloud:
-
-1. Hacer fork del repositorio
-2. Ir a [share.streamlit.io](https://share.streamlit.io) y conectar el repositorio
-3. Configurar: **Main file path** → `app/app.py`
+```bash
+curl http://localhost:8000/health
+```
 
 ---
 
-## Aviso
+## ⚠️ Riesgos técnicos
 
-Esta herramienta fue desarrollada con fines académicos e investigativos. No está certificada para uso diagnóstico clínico. Cualquier hallazgo debe ser confirmado por un profesional de salud bucodental calificado.
+- **Generalización fuera de dominio:** cambios de cámara, iluminación, resolución o protocolo clínico pueden reducir el rendimiento.
+- **Sesgo de dataset:** distribución de clases y procedencia de datos podrían no representar todos los contextos poblacionales.
+- **Sensibilidad a calidad de imagen:** desenfoque, compresión agresiva o encuadre incompleto pueden afectar la predicción.
+- **Interpretabilidad no causal:** Score-CAM aporta señal visual útil, pero no constituye evidencia clínica definitiva.
+- **Uso no supervisado:** utilizar el sistema sin revisión profesional puede inducir decisiones incorrectas.
 
 ---
 
-## Tecnologías
+## 🔮 Trabajo futuro
 
-Python · PyTorch · Torchvision · Streamlit · Plotly · Pillow · NumPy · Matplotlib
+- **Validación externa multicéntrica** con nuevos hospitales/dispositivos.
+- **Calibración de probabilidades** para mejorar confiabilidad del score.
+- **Cuantificación de incertidumbre** (ensembles, MC dropout) para soporte a decisiones.
+- **Pipeline MLOps** con monitoreo de drift, versionado de modelos y auditoría continua.
+- **Extensión multimodal** combinando imagen + metadatos clínicos.
+
+---
+
+## 🧾 Dataset y referencia
+
+- Fuente: [Oral Cancer Images Dataset (Kaggle)](https://www.kaggle.com/datasets/ashenafifasilkebede/dataset)
+- Clases: `Cancer = 1`, `Normal = 0`
+- Split experimental: 70% train / 15% val / 15% test
+
+---
+
+## 📄 Licencia
+
+Proyecto con fines académicos y de investigación. Si quieres distribución abierta formal, añade un archivo `LICENSE` (por ejemplo MIT).
